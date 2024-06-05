@@ -16,6 +16,7 @@ import com.chattriggers.ctjs.triggers.ForgeTrigger
 import com.chattriggers.ctjs.triggers.TriggerType
 import com.chattriggers.ctjs.utils.Config
 import com.chattriggers.ctjs.utils.UpdateChecker
+import com.chattriggers.ctjs.utils.SSLUtil
 import com.google.gson.Gson
 import gg.essential.vigilance.Vigilance
 import net.minecraftforge.client.ClientCommandHandler
@@ -26,9 +27,11 @@ import net.minecraftforge.fml.common.event.FMLPreInitializationEvent
 import java.io.File
 import java.net.URL
 import java.net.URLConnection
+import javax.net.ssl.HttpsURLConnection
 import java.security.MessageDigest
 import java.util.*
 import kotlin.concurrent.thread
+
 
 @Mod(
     modid = Reference.MODID,
@@ -88,11 +91,16 @@ object CTJS {
         registerHooks()
     }
 
-    fun makeWebRequest(url: String): URLConnection = URL(url).openConnection().apply {
-        setRequestProperty("User-Agent", "Mozilla/5.0 (ChatTriggers)")
-        connectTimeout = 3000
-        readTimeout = 3000
-    }
+    fun makeWebRequest(url: String): URLConnection {
+            val connection = URL(url).openConnection()
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (ChatTriggers)")
+            if (connection is HttpsURLConnection && SSLUtil.getSSLContext() != null) {
+                connection.sslSocketFactory = SSLUtil.getSSLContext()!!.socketFactory
+            }
+            connection.connectTimeout = 3000
+            connection.readTimeout = 3000
+            return connection
+        }
 
     private fun registerHooks() {
         ClientCommandHandler.instance.registerCommand(CTCommand)
