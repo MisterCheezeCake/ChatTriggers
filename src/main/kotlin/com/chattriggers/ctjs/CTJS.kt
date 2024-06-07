@@ -35,6 +35,7 @@ import javax.net.ssl.KeyManagerFactory
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManagerFactory
 import kotlin.concurrent.thread
+import kotlin.math.log
 
 @Mod(
     modid = Reference.MODID,
@@ -93,15 +94,16 @@ object CTJS {
 
         registerHooks()
     }
+
     fun makeWebRequest(url: String): URLConnection {
-            val connection = URL(url).openConnection()
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (ChatTriggers)")
-            if (connection is HttpsURLConnection && sslContext != null) {
-                connection.sslSocketFactory = sslContext!!.socketFactory
-            }
-            connection.connectTimeout = 3000
-            connection.readTimeout = 3000
-            return connection
+        val connection = URL(url).openConnection()
+        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (ChatTriggers)")
+        if (connection is HttpsURLConnection && sslContext != null) {
+            connection.sslSocketFactory = sslContext!!.socketFactory
+        }
+        connection.connectTimeout = 3000
+        connection.readTimeout = 3000
+        return connection
     }
 
     private fun registerHooks() {
@@ -121,7 +123,7 @@ object CTJS {
         val connection = makeWebRequest(url)
         connection.getInputStream()
     }
-    private val sslContext by lazy {
+     val sslContext by lazy {
         try {
             val myKeyStore = KeyStore.getInstance("JKS")
             myKeyStore.load(CTJS::class.java.getResourceAsStream("/ctjskeystore.jks"), "changeit".toCharArray())
@@ -131,17 +133,13 @@ object CTJS {
             tmf.init(myKeyStore)
             var ctx = SSLContext.getInstance("TLS")
             ctx?.init(kmf.keyManagers, tmf.trustManagers, null)
-            ModuleManager.generalConsole.println("SSL Context Initialized")
             ctx
         } catch (e: Exception) {
-            ModuleManager.generalConsole.println("Failed to load keystore. Web requests may fail on older Java versions", LogType.WARN)
-            ModuleManager.generalConsole.println(e.stackTrace, LogType.ERROR)
+            "Failed to load keystore. Web requests may fail on older Java versions".printToConsole(logType = LogType.WARN)
+            e.printTraceToConsole()
             null
         }
 
-    }
-    fun getSSLContext(): SSLContext? {
-        return sslContext;
     }
 
 }
